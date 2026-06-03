@@ -71,8 +71,6 @@ Pygments==2.20.0
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
-## !! Could not determine repository location
--e /home/jg2alv/Desktop/tp-ppml/quickstart-pytorch
 ray==2.51.1
 referencing==0.37.0
 requests==2.34.2
