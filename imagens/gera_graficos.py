@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import ast
 
 # Caminhos dos CSVs
 baseline_path = os.path.join("..", "metricas", "baseline.csv")
@@ -13,6 +14,18 @@ csv_paths = [baseline_path, fixedclipping_norm_1_path, fixedclipping_norm_5_path
 for csv_path in csv_paths:
     if not os.path.exists(csv_path):
         print(csv_path, " não encontrado.")
+        raise SystemExit
+
+# Baselines extras (sem DP), só com accuracy global, em outros níveis de
+# heterogeneidade (Dirichlet alpha). A baseline "oficial" do pipeline de CSVs
+# acima já é Dirichlet alpha=0.3.
+dirichlet_extra_paths = {
+    "Dirichlet 1.0": os.path.join("..", "metricas", "fedavg_100_clientes_dir_1.0_fmnist.txt"),
+    "Dirichlet 0.5": os.path.join("..", "metricas", "fedavg_100_clientes_dir_0.5_fmnist.txt"),
+}
+for path in dirichlet_extra_paths.values():
+    if not os.path.exists(path):
+        print(path, " não encontrado.")
         raise SystemExit
 
 # Rótulos e parâmetros de DP para cada estratégia
@@ -56,9 +69,20 @@ def metricas_clientes(df_raw):
     return df_raw[df_raw["user"] != "FL-Global"].copy().sort_values(by="epoch")
 
 
+# Carrega arquivos no formato "(epoch, valor),(epoch, valor),..." -> Series indexada por epoch
+def carregar_tuplas_epoch_valor(path):
+    with open(path, "r") as f:
+        conteudo = f.read().strip()
+    tuplas = ast.literal_eval(f"[{conteudo}]")
+    epochs, valores = zip(*tuplas)
+    serie = pd.Series(valores, index=pd.Index(epochs, name="epoch"), name="accuracy")
+    return serie.sort_index()
+
+
 raw = {label: carregar_raw(path) for label, path in zip(LABELS, csv_paths)}
 df_global = {label: metricas_globais(raw[label]) for label in LABELS}
 df_clients = {label: metricas_clientes(raw[label]) for label in LABELS}
+df_dirichlet_extra = {label: carregar_tuplas_epoch_valor(path) for label, path in dirichlet_extra_paths.items()}
 
 # Evolução das métricas globais
 def plot_f1_accuracy_loss():
@@ -240,9 +264,42 @@ def plot_dispersao_clientes(metric="metrics.accuracy"):
     plt.show()
 
 
+# Compara a accuracy global das 3 baselines (sem DP) com níveis diferentes
+# de heterogeneidade (Dirichlet alpha = 0.3, 0.5 e 1.0). Quanto menor o alpha,
+# mais desbalanceada é a distribuição de classes entre os 100 clientes.
+def plot_comparacao_dirichlet(metric="metrics.accuracy"):
+    baseline_label = "Baseline (Sem DP)"
+    serie_base = df_global[baseline_label][metric]
+
+    fig = plt.figure(figsize=(9, 6))
+    linhas, rotulos = [], []
+
+    ln = plt.plot(serie_base.index, serie_base.values,
+                   label="Dirichlet 0.3 (baseline atual)", color=CORES[baseline_label])
+    linhas.append(ln[0])
+    rotulos.append("Dirichlet 0.3 (baseline atual)")
+
+    cores_extra = {"Dirichlet 1.0": "tab:orange", "Dirichlet 0.5": "tab:green"}
+    for label, serie in df_dirichlet_extra.items():
+        ln = plt.plot(serie.index, serie.values, label=label, color=cores_extra[label])
+        linhas.append(ln[0])
+        rotulos.append(label)
+
+    plt.title("Accuracy global: efeito do nível de heterogeneidade (Dirichlet alpha)")
+    plt.xlabel("Rodada (Epoch/Round)")
+    plt.ylabel("accuracy")
+    plt.grid(True)
+    fig.legend(handles=linhas, labels=rotulos, loc="lower center",
+               ncol=3, bbox_to_anchor=(0.5, 0.01), fontsize=10)
+    plt.tight_layout(rect=[0, 0.1, 1, 1])
+    plt.savefig(os.path.join(OUTPUT_DIR, "comparacao_dirichlet.png"))
+    plt.show()
+
+
 plot_f1_accuracy_loss()
 plot_delta_vs_baseline()
 plot_metricas_finais()
 plot_rodadas_ate_threshold()
 plot_tradeoff_privacidade()
 plot_dispersao_clientes()
+plot_comparacao_dirichlet()
