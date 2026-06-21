@@ -8,9 +8,10 @@ import ast
 baseline_path = os.path.join("..", "metricas", "baseline.csv")
 fixedclipping_norm_1_path = os.path.join("..", "metricas", "fixedclipping_(0.1,1.0,10).csv")
 fixedclipping_norm_5_path = os.path.join("..", "metricas", "fixedclipping_(0.1,5.0,10).csv")
+adaptativeclipping_iid_path = os.path.join("..", "metricas", "adaptiveclipping_iid(0.1,10).csv")
 adaptativeclipping_path = os.path.join("..", "metricas", "adaptativeclipping_(0.1,10).csv")
 
-csv_paths = [baseline_path, fixedclipping_norm_1_path, fixedclipping_norm_5_path, adaptativeclipping_path]
+csv_paths = [baseline_path, fixedclipping_norm_1_path, fixedclipping_norm_5_path, adaptativeclipping_iid_path, adaptativeclipping_path]
 for csv_path in csv_paths:
     if not os.path.exists(csv_path):
         print(csv_path, " não encontrado.")
@@ -33,6 +34,7 @@ LABELS = [
     "Baseline (Sem DP)",
     "Fixed Clipping (0.1,1.0,10)",
     "Fixed Clipping (0.1,5.0,10)",
+    "Adaptative Clipping IID (0.1,10)",
     "Adaptative Clipping (0.1,10)",
 ]
 DP_PARAMS = {
@@ -40,6 +42,7 @@ DP_PARAMS = {
     "Fixed Clipping (0.1,1.0,10)": {"noise_multiplier": 0.1, "clipping_norm": 1.0},
     "Fixed Clipping (0.1,5.0,10)": {"noise_multiplier": 0.1, "clipping_norm": 5.0},
     "Adaptative Clipping (0.1,10)": {"noise_multiplier": 0.1, "clipping_norm": None},
+    "Adaptative Clipping IID (0.1,10)": {"noise_multiplier": 0.1, "clipping_norm": None},
 }
 
 OUTPUT_DIR = "."
